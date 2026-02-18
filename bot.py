@@ -10,36 +10,26 @@ logger = logging.getLogger(__name__)
 
 # Токен бота
 TOKEN = os.environ.get('BOT_TOKEN')
-bot = Bot(token=TOKEN)
 
 # Создаем Flask приложение
 app = Flask(__name__)
 
 # Создаем приложение Telegram
-telegram_app = Application.builder().token(TOKEN).build()
+application = Application.builder().token(TOKEN).build()
 
 # Обработчик команды /start
 async def start(update, context):
     await update.message.reply_text('👋 Привет! Я бот для салона красоты!')
 
-# Обработчик текстовых сообщений
-async def echo(update, context):
-    await update.message.reply_text(f'Ты написал: {update.message.text}')
-
 # Добавляем обработчики
-telegram_app.add_handler(CommandHandler('start', start))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-
-# Инициализируем приложение
-import asyncio
-asyncio.run(telegram_app.initialize())
+application.add_handler(CommandHandler('start', start))
 
 # Вебхук для приема обновлений
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """Принимает обновления от Telegram"""
-    update = Update.de_json(request.get_json(force=True), bot)
-    asyncio.run(telegram_app.process_update(update))
+    update = Update.de_json(request.get_json(force=True), application.bot)
+    application.process_update(update)
     return 'OK', 200
 
 # Главная страница для проверки
