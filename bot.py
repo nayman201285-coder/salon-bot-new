@@ -2,37 +2,33 @@ import os
 import logging
 from flask import Flask, request
 from telegram import Bot, Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Filters
 
-# Настройка логирования
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
-# Токен бота
 TOKEN = os.environ.get('BOT_TOKEN')
+bot = Bot(token=TOKEN)
 
-# Создаем Flask приложение
 app = Flask(__name__)
 
-# Создаем приложение Telegram
-application = Application.builder().token(TOKEN).build()
+# Создаем диспетчер для старой версии
+dispatcher = Dispatcher(bot, None, workers=0)
 
-# Обработчик команды /start
-async def start(update, context):
-    await update.message.reply_text('👋 Привет! Я бот для салона красоты!')
+def start(update, context):
+    update.message.reply_text('👋 Привет! Я бот для салона красоты!')
 
-# Добавляем обработчики
-application.add_handler(CommandHandler('start', start))
+def echo(update, context):
+    update.message.reply_text(f'Ты написал: {update.message.text}')
 
-# Вебхук для приема обновлений
+dispatcher.add_handler(CommandHandler('start', start))
+dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """Принимает обновления от Telegram"""
-    update = Update.de_json(request.get_json(force=True), application.bot)
-    application.process_update(update)
+    update = Update.de_json(request.get_json(force=True), bot)
+    dispatcher.process_update(update)
     return 'OK', 200
 
-# Главная страница для проверки
 @app.route('/')
 def index():
     return 'Bot is running!', 200
