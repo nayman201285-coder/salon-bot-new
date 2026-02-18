@@ -2,7 +2,7 @@ import os
 import logging
 from flask import Flask, request
 from telegram import Bot, Update
-from telegram.ext import Dispatcher, CommandHandler, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -15,8 +15,8 @@ bot = Bot(token=TOKEN)
 # Создаем Flask приложение
 app = Flask(__name__)
 
-# Создаем диспетчер
-dispatcher = Dispatcher(bot, None, workers=0, use_context=True)
+# Создаем приложение Telegram
+telegram_app = Application.builder().token(TOKEN).build()
 
 # Обработчик команды /start
 async def start(update, context):
@@ -26,16 +26,20 @@ async def start(update, context):
 async def echo(update, context):
     await update.message.reply_text(f'Ты написал: {update.message.text}')
 
-# Регистрируем обработчики
-dispatcher.add_handler(CommandHandler('start', start))
-dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+# Добавляем обработчики
+telegram_app.add_handler(CommandHandler('start', start))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+
+# Инициализируем приложение
+import asyncio
+asyncio.run(telegram_app.initialize())
 
 # Вебхук для приема обновлений
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """Принимает обновления от Telegram"""
     update = Update.de_json(request.get_json(force=True), bot)
-    dispatcher.process_update(update)
+    asyncio.run(telegram_app.process_update(update))
     return 'OK', 200
 
 # Главная страница для проверки
