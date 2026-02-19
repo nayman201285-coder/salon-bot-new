@@ -13,12 +13,14 @@ app = Flask(__name__)
 ORACLE_SERVER = "http://10.0.1.87:10000"
 
 @app.route('/webhook', methods=['POST'])
-def proxy():
+def webhook():
     """Принимает вебхук от Telegram и отправляет в Oracle"""
+    logger.info("🔥 Получен запрос на /webhook")
+    
     try:
         # Получаем данные от Telegram
         data = request.get_json()
-        logger.info(f"🔥 Получен запрос от Telegram, пересылаю в Oracle")
+        logger.info(f"📦 Данные: {data}")
         
         # Отправляем в Oracle
         response = requests.post(
@@ -26,6 +28,8 @@ def proxy():
             json=data,
             timeout=10
         )
+        
+        logger.info(f"✅ Ответ от Oracle: {response.status_code}")
         
         # Возвращаем ответ Telegram
         return Response(
@@ -35,7 +39,7 @@ def proxy():
         )
     except Exception as e:
         logger.error(f"❌ Ошибка: {e}")
-        return "OK", 200  # Telegram требует 200 даже при ошибках
+        return "OK", 200
 
 @app.route('/')
 def index():
